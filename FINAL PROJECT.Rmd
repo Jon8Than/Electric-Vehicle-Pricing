@@ -88,4 +88,5 @@ Based on the graph we can see that most of the electric vehicles have a 0-100kmh
 
 ### Top Speed
 The top speed of a vehicle could be important to a customer if they have a place where they could take advantage of the car's top speed. A place could be the Autobahn. The Autobahn is a freeway in Germany does not have any speed limits in some area. So a high top speed vehicle would benefit here.
-![Fig 1. Autobahn, map of freeway in Germany]("C:\\Users\\Jonat\\OneDrive\\schoolwork\\PSTAT 131\\FINAL PROJECT\\Final-Project-pstat131\\Autobhan.png"){width="196"}
+print(getwd())
+![Fig 1. Autobahn, map of freeway in Germany]("C:\\Users\\Jonat\\OneDrive\\schoolwork\\PSTAT 131\\FINAL PROJECT\\images\\Autobhan.png"){width="196"}
