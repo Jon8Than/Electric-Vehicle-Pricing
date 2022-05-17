@@ -1,0 +1,91 @@
+---
+title: "Final Project"
+author: "Jonathan Palada Rosal"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+    code_folding: show
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE)
+```
+
+## Introduction
+The purpose of this project is to generate a model that will be able to predict the price of an electric vehicle based on the features that vehicle comes with.
+
+### Electric Cars
+An electric car is a car that does not run on a petrol engine but rather runs on an electric battery. Some benefits to owning an electric car are that the car is quieter, no exhaust emissions, and low maintenance costs. Electric cars are becoming increasingly popular, due to the rise of gas prices, and the advancement in technology. The problem with electric cars before was that they were too expensive, they couldn't travel far, and there weren't many places to charge your vehicle. Most electric cars do not suffer from these problems anymore. Therefore, there is more reason to purchase an electric car.
+```{r}
+library(tidyverse)
+library(lubridate)
+library(tidymodels)
+library(skimr)
+library(patchwork)
+library(janitor)
+library(vembedr)
+embed_youtube("FDTf2d47P4A")
+```
+### How my model can be helpful
+This model can be helpful by helping customers choose the features they want in their car and getting an estimated price based on what they chose. Another way they can use the model is if they have a specific budget for their electric car, then they can see what options are available to them.
+
+### An overview of the dataset
+The dataset I am using is from the website Kaggle. This dataset contains some variables that are important to a customer looking to buy an electric vehicle.
+The variables in this dataset are as follows
+- Brand: The brand of the vehicle
+- Model: The model of the vehicle
+- AccelSec: The acceleration of the vehicle from 0-100 (km/h)
+- TopSpeed_KmH: The top speed of the vehicle (km/h)
+- Range_Km: The range of the vehicle on a full charge (km)
+- Efficiency_WhKm: The efficiency of the electric vehicle in watts per hour per kilometer (wh/km)
+- FastCharge_KmH: The charging rate of an electric car in kilometer per hour (km/h)
+- RapidCharge: If the car has the option of rapidcharge. Rapidcharge is a faster charge rate than the typical charging rate
+- PowerTrain: If the car has front, rear, or all-wheel drive
+- PlugType: The type of plug the electric vehicle uses
+- BodyStyle: The type of body style or car style the vehicle is
+- Segment: The market segment the car is in
+- Seats: The amount of seats the vehicle holds
+- PriceEuro: The price of the vehicle before any tax incentives
+
+## Cleaning the dataset
+```{r}
+electric_cars <- read.csv("C:\\Users\\Jonat\\OneDrive\\schoolwork\\PSTAT 131\\FINAL PROJECT\\ElectricCarData_Clean.csv")
+head(electric_cars)
+
+# Cleaning the names and deselecting the variable "segment"
+electric_cars <- electric_cars %>%
+  clean_names()
+head(electric_cars) # names are cleaned up
+electric_cars <- electric_cars %>%
+  select(-brand, -model, -segment) 
+head(electric_cars) # the following variables have been removed from the dataset
+electric_cars$rapid_charge <- factor(electric_cars$rapid_charge, levels = c("Yes","No"))
+electric_cars$power_train <- factor(electric_cars$power_train)
+electric_cars$plug_type <- factor(electric_cars$plug_type)
+electric_cars$body_style <- factor(electric_cars$body_style)
+```
+### Splitting the data
+```{r}
+ec_split <- electric_cars %>%
+  initial_split(prop = 0.7, strata = "price_euro")
+
+ec_train <- training(ec_split)
+ec_test <- testing(ec_split)
+```
+## Variables
+
+### Acceleration
+The acceleration of a vehicle could be important to customers who live in an environment with many hills and inclines. Another reason why a customer may be interested in a higher acceleration car is if they want a more "exciting" drive. A car with high acceleration will give the vehicle a more sportier feel.
+```{r}
+ggplot(electric_cars, aes(accel_sec)) + geom_histogram(bins = 75, color = "white") + labs(title = "Range of acceleration speeds", x="Acceleration in seconds (0-100kmh)",y="Count")
+```
+Based on the graph we can see that most of the electric vehicles have a 0-100kmh time of around 7-10 seconds. As we get closer to zero we see that they are fewer vehicles. There is one outlier in the data that has an acceleration speed that is over 20 seconds.
+
+### Top Speed
+The top speed of a vehicle could be important to a customer if they have a place where they could take advantage of the car's top speed. A place could be the Autobahn. The Autobahn is a freeway in Germany does not have any speed limits in some area. So a high top speed vehicle would benefit here.
+![Fig 1. Autobahn, map of freeway in Germany]("C:\\Users\\Jonat\\OneDrive\\schoolwork\\PSTAT 131\\FINAL PROJECT\\images\\Autobhan.png"){width="196"}
