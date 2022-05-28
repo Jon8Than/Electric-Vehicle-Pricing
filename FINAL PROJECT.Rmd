@@ -29,10 +29,30 @@ library(skimr)
 library(patchwork)
 library(janitor)
 library(vembedr)
+library(ISLR)
+library(ISLR2)
+library(discrim)
+library(poissonreg)
+library(corrr)
+library(klaR)
+library(readr)
+library(corrplot)
+library(tune)
+library(ggplot2)
 embed_youtube("FDTf2d47P4A")
 ```
 ### How my model can be helpful
 This model can be helpful by helping customers choose the features they want in their car and getting an estimated price based on what they chose. Another way they can use the model is if they have a specific budget for their electric car, then they can see what options are available to them.
+
+### Reading in the dataset
+```{r}
+electric_cars <- read.csv("ElectricCarData_Clean.csv")
+head(electric_cars)
+# Cleaning the names and deselecting the variable "segment"
+electric_cars <- electric_cars %>%
+  clean_names()
+head(electric_cars) # names are cleaned up
+```
 
 ### An overview of the dataset
 The dataset I am using is from the website Kaggle. This dataset contains some variables that are important to a customer looking to buy an electric vehicle.
@@ -52,23 +72,72 @@ The variables in this dataset are as follows
 - Seats: The amount of seats the vehicle holds
 - PriceEuro: The price of the vehicle before any tax incentives
 
-## Cleaning the dataset
-```{r}
-electric_cars <- read.csv("C:\\Users\\Jonat\\OneDrive\\schoolwork\\PSTAT 131\\FINAL PROJECT\\ElectricCarData_Clean.csv")
-head(electric_cars)
+## Important factors to Customers
+As a person who's family currently owns an electric car, there are some key aspects that are important to a customer when finding the right electric car for them. Depending on a person's environment, needs, and wants, will help decide on what electric car would be perfect for them. 
 
-# Cleaning the names and deselecting the variable "segment"
-electric_cars <- electric_cars %>%
-  clean_names()
-head(electric_cars) # names are cleaned up
-electric_cars <- electric_cars %>%
-  select(-brand, -model, -segment) 
-head(electric_cars) # the following variables have been removed from the dataset
-electric_cars$rapid_charge <- factor(electric_cars$rapid_charge, levels = c("Yes","No"))
-electric_cars$power_train <- factor(electric_cars$power_train)
-electric_cars$plug_type <- factor(electric_cars$plug_type)
-electric_cars$body_style <- factor(electric_cars$body_style)
+### Acceleration & Top Speed
+The acceleration of a vehicle could be important to customers who live in an environment with many hills and inclines. Another reason why a customer may be interested in a higher acceleration car is if they want a more "exciting" drive. A car with high acceleration will give the vehicle a more sportier feel.
+
+The top speed of a vehicle could be important to a customer if they have a place where they could take advantage of the car's top speed. A place could be the Autobahn. The Autobahn is a freeway in Germany does not have any speed limits in some area. So a high top speed vehicle would benefit here.
+
+![Fig 1. Autobahn, map of freeway in Germany](Autobhan.png){width="196"}
+
+Top Speed and Acceleration usually seem to have some type of correlation with each other in gas powered vehicles. Usually if a car has a high top speed, they usually have a lower 0-100kmh time.
+```{r}
+plot(electric_cars$top_speed_km_h,electric_cars$accel_sec,  pch = 19, col = "lightblue", xlab="Top Speed (Kmh)", ylab = "Acceleration (0-100 kmh)", main = "Correlation between Acceleration and Top Speed", xlim = c(0,450), ylim = c(0, 25),)
+# Regression line
+abline(lm(electric_cars$accel_sec ~ electric_cars$top_speed_km_h), col = "red", lwd = 3)
+# Pearson correlation
+text(paste("Correlation:", round(cor(electric_cars$top_speed_km_h, electric_cars$accel_sec), 2)), x = 350, y = 20)
 ```
+
+Based on the graph we can see that acceleration and top speed have a relatively strong negative correlation. Acceleration and Top Speed have a correlation of -0.79. From this graph we can say that the higher a top speed an electric car has, the lower 0-100kmh time.
+
+### Range, fast charge, and rapid charge.
+Out of all the variables of the electric car, I believe this is to be the most important variable of them all. Range tells how far the vehicle can travel before needing to be recharged. Having a shorter range on car can significantly decrease the amount of places the car can travel and how long it will take to get to each destination (due to having to recharge more often). At this period of time (2022), there are not as many charging stations as gas stations. Therefore, it is very important to know where all the nearest charging stations are when traveling, or else it will result in the car running out of electricity.
+
+Going off charging stations, a faster charger would benefit. The benefit of gas cars over electric cars are that for a gas powered car, it takes a few minutes to refill. This is compared to electric cars that may take up to an hour or more to be completely charged. However, some cars have  fast charging or even better rapid charging. This can get the electric cars to 80% charge in just 10-15 minutes.
+```{r}
+embed_youtube("OpTOKKKGWV8")
+
+ggplot(electric_cars, aes(x=range_km, y=fast_charge_km_h, colour = rapid_charge)) + geom_point() + facet_wrap( ~ rapid_charge)
+```
+Based on our graphs we can see that there are only 3 observations in this dataset that do not have a rapid charge. These cars will most likely not sell as well as the vehicles with rapid charge. We can see that the cars with no rapid charge do not have a high range. The cars that do have rapid charge have a longer range and a faster charge rate. There also seems to be a positive correlation between range and fast charging. We can conclude that vehicles without rapid charging do not have a far range. We can also conclude that the faster the charger you have, the longer range your electric will go.
+
+### Price
+Of course price is truly important to customers. An electric car can contain all these cool features, but if the price is completely overpriced then it would not be worth it. Price is a key factor for everything we purchase. We buy things that we feel is worth the price. No matter how good an object it is, we always end up buying that item if the price is reasonable. This is the reason why I decided to make price my response variable in this project.
+```{r}
+ggplot(electric_cars, aes(price_euro)) +
+   geom_histogram(bins = 70, color = "red") +
+   labs(title = "Range of Prices")
+```
+Based on the plot we can say that the price of the electric vehicles from this dataset, mainly ranges from 0 to 80,000. The vehicles that are above this range are most likely luxurious electric vehicles or high-end sport electric sport cars. The cars that are within this range are most likely efficiently friendly vehicles.
+```{r}
+#We will see if I use this later.
+ggplot(electric_cars, aes(reorder(accel_sec, top_speed_km_h), top_speed_km_h)) +
+   geom_boxplot(varwidth = TRUE) + 
+   coord_flip() +
+   labs(
+     title = "Top Speed by Acceleration",
+     x = "Top Speed"
+   )
+```
+
+## Prepearation for modeling
+The following models conducted were done in this order and procedure:
+1. Building the model
+2. Running the model
+3. Analyzing the results of the model
+
+### Cleaning the dataset
+```{r}
+# electric_cars$rapid_charge <- factor(electric_cars$rapid_charge, levels = c("Yes","No"))
+# electric_cars$power_train <- factor(electric_cars$power_train)
+# electric_cars$plug_type <- factor(electric_cars$plug_type)
+# electric_cars$body_style <- factor(electric_cars$body_style)
+# electric_cars$brand <- factor(electric_cars$brand)
+```
+
 ### Splitting the data
 ```{r}
 ec_split <- electric_cars %>%
@@ -77,17 +146,142 @@ ec_split <- electric_cars %>%
 ec_train <- training(ec_split)
 ec_test <- testing(ec_split)
 ```
-## Variables
 
-### Acceleration
-The acceleration of a vehicle could be important to customers who live in an environment with many hills and inclines. Another reason why a customer may be interested in a higher acceleration car is if they want a more "exciting" drive. A car with high acceleration will give the vehicle a more sportier feel.
+### Finding correlations
 ```{r}
-ggplot(electric_cars, aes(accel_sec)) + geom_histogram(bins = 75, color = "white") + labs(title = "Range of acceleration speeds", x="Acceleration in seconds (0-100kmh)",y="Count")
+cor_ec <- ec_train %>%
+  select_if(is.numeric) %>%
+  correlate()
+rplot(cor_ec)
+cor_ec %>%
+  stretch() %>%
+  ggplot(aes(x,y,fill = r)) + geom_tile() + geom_text(aes(label = as.character(fashion(r))))
 ```
-Based on the graph we can see that most of the electric vehicles have a 0-100kmh time of around 7-10 seconds. As we get closer to zero we see that they are fewer vehicles. There is one outlier in the data that has an acceleration speed that is over 20 seconds.
 
-### Top Speed
-The top speed of a vehicle could be important to a customer if they have a place where they could take advantage of the car's top speed. A place could be the Autobahn. The Autobahn is a freeway in Germany does not have any speed limits in some area. So a high top speed vehicle would benefit here.
-print(getwd())
-Fig 1. Autobahn, map of freeway in Germany
-![](Autobhan.png){width="196"}
+Based on the correlation plot we can see that accel_sec has strong negative correlations with the variables: top_speed_km_h, range_km, price_euro. Top_speed_km_h has strong positive correlations with the variables: range_km, price_euro. The last correlation that is relative noting is the positive correlation between range_km and price_euro.
+
+### Making the recipe and folds
+```{r}
+ec_recipe <- recipe(price_euro ~ brand + accel_sec + top_speed_km_h + range_km + efficiency_wh_km + fast_charge_km_h + rapid_charge + power_train + plug_type + body_style + seats, data = ec_train) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_normalize(all_predictors()) %>%
+  step_novel(all_nominal_predictors()) %>%
+  step_zv(all_nominal_predictors())
+               
+
+ec_folds <- vfold_cv(ec_train, strata = price_euro, v = 10, repeats = 5)
+```
+
+## The models
+
+The models that I have decided to conduct, are a ridge regression model.
+```{r}
+#Ridge Regression
+set.seed(3515)
+
+ridge_spec <- linear_reg(penalty = tune(), mixture = 0) %>%
+  set_mode("regression") %>%
+  set_engine("glmnet")
+
+ridge_workflow <- workflow() %>%
+  add_recipe(ec_recipe) %>%
+  add_model(ridge_spec)
+
+penalty_grid <- grid_regular(penalty(range = c(1, 11)), levels = 50)
+penalty_grid
+
+tune_res <- tune_grid(
+  ridge_workflow,
+  resamples = ec_folds,
+  grid = penalty_grid
+)
+tune_res
+
+autoplot(tune_res)
+
+collect_metrics(tune_res)
+
+best_penalty <- select_best(tune_res, metric = "rsq")
+best_penalty
+
+ridge_final <- finalize_workflow(ridge_workflow, best_penalty)
+ridge_final_fit <- fit(ridge_final, data = ec_train)
+
+ec_train_res1 <- predict(ridge_final_fit, new_data = ec_test %>% dplyr::select(-price_euro))
+ec_train_res1 <- bind_cols(ec_train_res1, ec_test %>% dplyr::select(price_euro))
+ec_train_res1 %>%
+  head()
+
+ec_train_res1 %>%
+  ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
+
+augment(ridge_final_fit, new_data = ec_test) %>%
+  rsq(truth = price_euro, estimate = .pred)
+```
+
+```{r}
+#Lasso Regression
+
+set.seed(3515)
+
+lasso_spec <-
+  linear_reg(penalty = tune(), mixture = 1) %>%
+  set_mode("regression") %>%
+  set_engine("glmnet")
+
+lasso_workflow <- workflow() %>%
+  add_recipe(ec_recipe) %>%
+  add_model(lasso_spec)
+
+tune_res_lasso <- tune_grid(
+  lasso_workflow,
+  resamples = ec_folds,
+  grid = penalty_grid
+)
+tune_res_lasso
+
+autoplot(tune_res_lasso)
+
+collect_metrics(tune_res_lasso)
+
+best_penalty_lasso <- select_best(tune_res_lasso, metric = "rsq")
+
+lasso_final <- finalize_workflow(lasso_workflow, best_penalty_lasso)
+lasso_final_fit <- fit(lasso_final, data = ec_train)
+
+ec_train_res2 <- predict(lasso_final_fit, new_data = ec_test %>% dplyr::select(-price_euro))
+ec_train_res2 <- bind_cols(ec_train_res2, ec_test %>% dplyr::select(price_euro))
+ec_train_res2 %>%
+  head()
+
+ec_train_res2 %>%
+  ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
+
+augment(lasso_final_fit, new_data = ec_test) %>%
+  rsq(truth = price_euro, estimate = .pred)
+```
+
+```{r}
+#linear
+lm_model <- linear_reg() %>%
+  set_engine("lm")
+
+lm_wflow <- workflow() %>%
+  add_model(lm_model) %>%
+  add_recipe(ec_recipe)
+
+lm_fit <- fit(lm_wflow, ec_train)
+lm_fit
+
+ec_train_res3 <- predict(lm_fit, new_data = ec_test %>% dplyr::select(-price_euro))
+ec_train_res3 <- bind_cols(ec_train_res3, ec_test %>% dplyr::select(price_euro))
+ec_train_res3 %>%
+  head()
+
+ec_train_res3 %>%
+  ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
+
+augment(lm_fit, new_data = ec_test) %>%
+  rsq(truth = price_euro, estimate = .pred)
+```
+
