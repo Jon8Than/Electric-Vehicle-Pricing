@@ -141,7 +141,7 @@ The following models conducted were done in this order and procedure:
 ### Splitting the data
 ```{r}
 ec_split <- electric_cars %>%
-  initial_split(prop = 0.7, strata = "price_euro")
+  initial_split(prop = 0.55, strata = "price_euro")
 
 ec_train <- training(ec_split)
 ec_test <- testing(ec_split)
@@ -213,7 +213,7 @@ ec_train_res1 %>%
   head()
 
 ec_train_res1 %>%
-  ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
+  ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha = 1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
 
 augment(ridge_final_fit, new_data = ec_test) %>%
   rsq(truth = price_euro, estimate = .pred)
