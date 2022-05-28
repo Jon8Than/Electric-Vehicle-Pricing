@@ -129,19 +129,10 @@ The following models conducted were done in this order and procedure:
 2. Running the model
 3. Analyzing the results of the model
 
-### Cleaning the dataset
-```{r}
-# electric_cars$rapid_charge <- factor(electric_cars$rapid_charge, levels = c("Yes","No"))
-# electric_cars$power_train <- factor(electric_cars$power_train)
-# electric_cars$plug_type <- factor(electric_cars$plug_type)
-# electric_cars$body_style <- factor(electric_cars$body_style)
-# electric_cars$brand <- factor(electric_cars$brand)
-```
-
 ### Splitting the data
 ```{r}
 ec_split <- electric_cars %>%
-  initial_split(prop = 0.55, strata = "price_euro")
+  initial_split(prop = 0.75, strata = "price_euro")
 
 ec_train <- training(ec_split)
 ec_test <- testing(ec_split)
@@ -174,10 +165,10 @@ ec_folds <- vfold_cv(ec_train, strata = price_euro, v = 10, repeats = 5)
 
 ## The models
 
-The models that I have decided to conduct, are a ridge regression model.
+### Ridge Regression
 ```{r}
 #Ridge Regression
-set.seed(3515)
+set.seed(12)
 
 ridge_spec <- linear_reg(penalty = tune(), mixture = 0) %>%
   set_mode("regression") %>%
@@ -219,10 +210,12 @@ augment(ridge_final_fit, new_data = ec_test) %>%
   rsq(truth = price_euro, estimate = .pred)
 ```
 
+
+### Lasso Regression
 ```{r}
 #Lasso Regression
 
-set.seed(3515)
+set.seed(12)
 
 lasso_spec <-
   linear_reg(penalty = tune(), mixture = 1) %>%
@@ -261,8 +254,11 @@ augment(lasso_final_fit, new_data = ec_test) %>%
   rsq(truth = price_euro, estimate = .pred)
 ```
 
+### Normal Linear Regression
 ```{r}
 #linear
+set.seed(12)
+
 lm_model <- linear_reg() %>%
   set_engine("lm")
 
