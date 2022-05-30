@@ -14,14 +14,6 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE,
                       warning = FALSE)
-```
-
-## Introduction
-The purpose of this project is to generate a model that will be able to predict the price of an electric vehicle based on the features that vehicle comes with.
-
-### Electric Cars
-An electric car is a car that does not run on a petrol engine but rather runs on an electric battery. Some benefits to owning an electric car are that the car is quieter, no exhaust emissions, and low maintenance costs. Electric cars are becoming increasingly popular, due to the rise of gas prices, and the advancement in technology. The problem with electric cars before was that they were too expensive, they couldn't travel far, and there weren't many places to charge your vehicle. Most electric cars do not suffer from these problems anymore. Therefore, there is more reason to purchase an electric car.
-```{r}
 library(tidyverse)
 library(lubridate)
 library(tidymodels)
@@ -39,6 +31,17 @@ library(readr)
 library(corrplot)
 library(tune)
 library(ggplot2)
+library(tree)
+library(rpart)
+library(rpart.plot)
+```
+
+## Introduction
+The purpose of this project is to generate a model that will be able to predict the price of an electric vehicle based on the features that vehicle comes with.
+
+### Electric Cars
+An electric car is a car that does not run on a petrol engine but rather runs on an electric battery. Some benefits to owning an electric car are that the car is quieter, no exhaust emissions, and low maintenance costs. Electric cars are becoming increasingly popular, due to the rise of gas prices, and the advancement in technology. The problem with electric cars before was that they were too expensive, they couldn't travel far, and there weren't many places to charge your vehicle. Most electric cars do not suffer from these problems anymore. Therefore, there is more reason to purchase an electric car.
+```{r}
 embed_youtube("FDTf2d47P4A")
 ```
 ### How my model can be helpful
@@ -49,6 +52,8 @@ This model can be helpful by helping customers choose the features they want in 
 electric_cars <- read.csv("ElectricCarData_Clean.csv")
 head(electric_cars)
 # Cleaning the names and deselecting the variable "segment"
+electric_cars$FastCharge_KmH <- as.numeric(electric_cars$FastCharge_KmH) 
+electric_cars$AccelSec <- as.numeric(electric_cars$AccelSec)
 electric_cars <- electric_cars %>%
   clean_names()
 head(electric_cars) # names are cleaned up
@@ -112,16 +117,6 @@ ggplot(electric_cars, aes(price_euro)) +
    labs(title = "Range of Prices")
 ```
 Based on the plot we can say that the price of the electric vehicles from this dataset, mainly ranges from 0 to 80,000. The vehicles that are above this range are most likely luxurious electric vehicles or high-end sport electric sport cars. The cars that are within this range are most likely efficiently friendly vehicles.
-```{r}
-#We will see if I use this later.
-ggplot(electric_cars, aes(reorder(accel_sec, top_speed_km_h), top_speed_km_h)) +
-   geom_boxplot(varwidth = TRUE) + 
-   coord_flip() +
-   labs(
-     title = "Top Speed by Acceleration",
-     x = "Top Speed"
-   )
-```
 
 ## Prepearation for modeling
 The following models conducted were done in this order and procedure:
@@ -131,11 +126,23 @@ The following models conducted were done in this order and procedure:
 
 ### Splitting the data
 ```{r}
+electric_cars <- electric_cars %>%
+  mutate(brand = factor(brand)) %>%
+  mutate(rapid_charge = factor(rapid_charge)) %>%
+  mutate(power_train = factor(power_train)) %>%
+  mutate(plug_type = factor(plug_type)) %>%
+  mutate(body_style = factor(body_style)) %>%
+  mutate(segment = factor(segment))
+head(electric_cars)
+
+set.seed(12)
 ec_split <- electric_cars %>%
   initial_split(prop = 0.75, strata = "price_euro")
 
 ec_train <- training(ec_split)
+dim(ec_train) #75
 ec_test <- testing(ec_split)
+dim(ec_test) #28
 ```
 
 ### Finding correlations
@@ -153,8 +160,9 @@ Based on the correlation plot we can see that accel_sec has strong negative corr
 
 ### Making the recipe and folds
 ```{r}
-ec_recipe <- recipe(price_euro ~ brand + accel_sec + top_speed_km_h + range_km + efficiency_wh_km + fast_charge_km_h + rapid_charge + power_train + plug_type + body_style + seats, data = ec_train) %>%
+ec_recipe <- recipe(price_euro ~ accel_sec + top_speed_km_h + range_km + efficiency_wh_km + fast_charge_km_h + rapid_charge + power_train + plug_type + body_style + segment + seats, data = ec_train) %>%
   step_dummy(all_nominal_predictors()) %>%
+  step_scale(all_predictors()) %>%
   step_normalize(all_predictors()) %>%
   step_novel(all_nominal_predictors()) %>%
   step_zv(all_nominal_predictors())
@@ -168,7 +176,6 @@ ec_folds <- vfold_cv(ec_train, strata = price_euro, v = 10, repeats = 5)
 ### Ridge Regression
 ```{r}
 #Ridge Regression
-set.seed(12)
 
 ridge_spec <- linear_reg(penalty = tune(), mixture = 0) %>%
   set_mode("regression") %>%
@@ -177,6 +184,8 @@ ridge_spec <- linear_reg(penalty = tune(), mixture = 0) %>%
 ridge_workflow <- workflow() %>%
   add_recipe(ec_recipe) %>%
   add_model(ridge_spec)
+
+set.seed(12)
 
 penalty_grid <- grid_regular(penalty(range = c(1, 11)), levels = 50)
 penalty_grid
@@ -215,8 +224,6 @@ augment(ridge_final_fit, new_data = ec_test) %>%
 ```{r}
 #Lasso Regression
 
-set.seed(12)
-
 lasso_spec <-
   linear_reg(penalty = tune(), mixture = 1) %>%
   set_mode("regression") %>%
@@ -225,6 +232,8 @@ lasso_spec <-
 lasso_workflow <- workflow() %>%
   add_recipe(ec_recipe) %>%
   add_model(lasso_spec)
+
+set.seed(12)
 
 tune_res_lasso <- tune_grid(
   lasso_workflow,
@@ -254,22 +263,43 @@ augment(lasso_final_fit, new_data = ec_test) %>%
   rsq(truth = price_euro, estimate = .pred)
 ```
 
-### Normal Linear Regression
+### Tree model
 ```{r}
-#linear
-set.seed(12)
+tree_spec <-decision_tree() %>%
+  set_engine("rpart")
 
-lm_model <- linear_reg() %>%
-  set_engine("lm")
-
-lm_wflow <- workflow() %>%
-  add_model(lm_model) %>%
+class_tree_spec <- tree_spec %>%
+  set_mode("regression")
+  
+class_tree_wf <- workflow() %>%
+  add_model(class_tree_spec %>% set_args(cost_complexity = tune())) %>%
   add_recipe(ec_recipe)
 
-lm_fit <- fit(lm_wflow, ec_train)
-lm_fit
+set.seed(12)
 
-ec_train_res3 <- predict(lm_fit, new_data = ec_test %>% dplyr::select(-price_euro))
+param_grid <- grid_regular(cost_complexity(range = c(-5, 5)), levels = 50)
+
+tune_res_tree <- tune_grid(
+  class_tree_wf,
+  resamples = ec_folds,
+  grid = param_grid,
+)
+autoplot(tune_res)
+
+tree_roc_auc <- collect_metrics(tune_res_tree) %>%
+  arrange(-mean) %>%
+  head()
+tree_roc_auc
+
+best_complexity <- select_best(tune_res)
+class_tree_final <- finalize_workflow(class_tree_wf, best_complexity)
+class_tree_final_fit <- fit(class_tree_final, data = ec_train)
+
+class_tree_final_fit %>%
+  extract_fit_engine() %>%
+  rpart.plot()
+
+ec_train_res3 <- predict(class_tree_final_fit, new_data = ec_test %>% dplyr::select(-price_euro))
 ec_train_res3 <- bind_cols(ec_train_res3, ec_test %>% dplyr::select(price_euro))
 ec_train_res3 %>%
   head()
@@ -277,7 +307,46 @@ ec_train_res3 %>%
 ec_train_res3 %>%
   ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
 
-augment(lm_fit, new_data = ec_test) %>%
+augment(class_tree_final_fit, new_data = ec_test) %>%
   rsq(truth = price_euro, estimate = .pred)
 ```
+### Boosted Model
+```{r}
+boost_spec <- boost_tree() %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
 
+boost_wf <- workflow() %>%
+  add_model(boost_spec %>%
+  set_args(trees = tune())) %>%
+  add_recipe(ec_recipe)
+
+set.seed(12)
+
+boost_grid <- grid_regular(trees(range = c(10, 2000)), levels = 50)
+
+boost_tune_res <- tune_grid(
+  boost_wf,
+  resamples = ec_folds,
+  grid = boost_grid,
+)
+autoplot(tune_res1)
+
+collect_metrics(boost_tune_res) %>% 
+  arrange(-mean) %>%
+  head()
+best_boost_final <- select_best(boost_tune_res)
+best_boost_final_model <- finalize_workflow(boost_wf, best_boost_final)
+best_boost_final_model_fit <- fit(best_boost_final_model, data = ec_train)
+
+ec_train_res4 <- predict(best_boost_final_model_fit, new_data = ec_test %>% dplyr::select(-price_euro))
+ec_train_res4 <- bind_cols(ec_train_res4, ec_test %>% dplyr::select(price_euro))
+ec_train_res4 %>%
+  head()
+
+ec_train_res4 %>%
+  ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
+
+augment(best_boost_final_model_fit, new_data = ec_test) %>%
+  rsq(truth = price_euro, estimate = .pred)
+```
