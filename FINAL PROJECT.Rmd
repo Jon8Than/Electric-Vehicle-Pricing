@@ -263,6 +263,47 @@ augment(lasso_final_fit, new_data = ec_test) %>%
   rsq(truth = price_euro, estimate = .pred)
 ```
 
+### Boosted Model
+```{r}
+boost_spec <- boost_tree() %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+
+boost_wf <- workflow() %>%
+  add_model(boost_spec %>%
+  set_args(trees = tune())) %>%
+  add_recipe(ec_recipe)
+
+set.seed(12)
+
+boost_grid <- grid_regular(trees(range = c(10, 2000)), levels = 50)
+
+boost_tune_res <- tune_grid(
+  boost_wf,
+  resamples = ec_folds,
+  grid = boost_grid,
+)
+autoplot(boost_tune_res)
+
+collect_metrics(boost_tune_res) %>% 
+  arrange(-mean) %>%
+  head()
+best_boost_final <- select_best(boost_tune_res)
+best_boost_final_model <- finalize_workflow(boost_wf, best_boost_final)
+best_boost_final_model_fit <- fit(best_boost_final_model, data = ec_train)
+
+ec_train_res4 <- predict(best_boost_final_model_fit, new_data = ec_test %>% dplyr::select(-price_euro))
+ec_train_res4 <- bind_cols(ec_train_res4, ec_test %>% dplyr::select(price_euro))
+ec_train_res4 %>%
+  head()
+
+ec_train_res4 %>%
+  ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
+
+augment(best_boost_final_model_fit, new_data = ec_test) %>%
+  rsq(truth = price_euro, estimate = .pred)
+```
+
 ### Tree model
 ```{r}
 tree_spec <-decision_tree() %>%
@@ -284,14 +325,14 @@ tune_res_tree <- tune_grid(
   resamples = ec_folds,
   grid = param_grid,
 )
-autoplot(tune_res)
+autoplot(tune_res_tree)
 
 tree_roc_auc <- collect_metrics(tune_res_tree) %>%
   arrange(-mean) %>%
   head()
 tree_roc_auc
 
-best_complexity <- select_best(tune_res)
+best_complexity <- select_best(tune_res_tree)
 class_tree_final <- finalize_workflow(class_tree_wf, best_complexity)
 class_tree_final_fit <- fit(class_tree_final, data = ec_train)
 
@@ -308,45 +349,5 @@ ec_train_res3 %>%
   ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
 
 augment(class_tree_final_fit, new_data = ec_test) %>%
-  rsq(truth = price_euro, estimate = .pred)
-```
-### Boosted Model
-```{r}
-boost_spec <- boost_tree() %>%
-  set_engine("xgboost") %>%
-  set_mode("regression")
-
-boost_wf <- workflow() %>%
-  add_model(boost_spec %>%
-  set_args(trees = tune())) %>%
-  add_recipe(ec_recipe)
-
-set.seed(12)
-
-boost_grid <- grid_regular(trees(range = c(10, 2000)), levels = 50)
-
-boost_tune_res <- tune_grid(
-  boost_wf,
-  resamples = ec_folds,
-  grid = boost_grid,
-)
-autoplot(tune_res1)
-
-collect_metrics(boost_tune_res) %>% 
-  arrange(-mean) %>%
-  head()
-best_boost_final <- select_best(boost_tune_res)
-best_boost_final_model <- finalize_workflow(boost_wf, best_boost_final)
-best_boost_final_model_fit <- fit(best_boost_final_model, data = ec_train)
-
-ec_train_res4 <- predict(best_boost_final_model_fit, new_data = ec_test %>% dplyr::select(-price_euro))
-ec_train_res4 <- bind_cols(ec_train_res4, ec_test %>% dplyr::select(price_euro))
-ec_train_res4 %>%
-  head()
-
-ec_train_res4 %>%
-  ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
-
-augment(best_boost_final_model_fit, new_data = ec_test) %>%
   rsq(truth = price_euro, estimate = .pred)
 ```
