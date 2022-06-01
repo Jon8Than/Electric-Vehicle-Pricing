@@ -51,16 +51,17 @@ This model can be helpful by helping customers choose the features they want in 
 ```{r}
 electric_cars <- read.csv("ElectricCarData_Clean.csv")
 head(electric_cars)
-# Cleaning the names and deselecting the variable "segment"
+is.numeric(electric_cars$FastCharge_KmH)
 electric_cars$FastCharge_KmH <- as.numeric(electric_cars$FastCharge_KmH) 
-electric_cars$AccelSec <- as.numeric(electric_cars$AccelSec)
 electric_cars <- electric_cars %>%
   clean_names()
-head(electric_cars) # names are cleaned up
+head(electric_cars)
+is.numeric(electric_cars$fast_charge_km_h)
 ```
+I have cleaned the names and also made the variable "FastCharge_KmH" numerical instead of categorical because the values in the dataset are the charging rate of the charger from the vehicle. Therefore I believe those values should be numerical, to help improve the model's calculations.
 
 ### An overview of the dataset
-The dataset I am using is from the website Kaggle. This dataset contains some variables that are important to a customer looking to buy an electric vehicle.
+The dataset I am using is from the website Kaggle. This dataset contains some variables that are important to a customer looking to buy an electric vehicle. (Can also be found in codebook)
 The variables in this dataset are as follows
 - ```Brand```: The brand of the vehicle
 - ```Model```: The model of the vehicle
@@ -77,15 +78,17 @@ The variables in this dataset are as follows
 - ```Seats```: The amount of seats the vehicle holds
 - ```PriceEuro```: The price of the vehicle before any tax incentives
 
-## Important factors to Customers
+## Explanatory Data Analysis
+
+### Factors that could result in a person's purchase
 As a person who's family currently owns an electric car, there are some key aspects that are important to a customer when finding the right electric car for them. Depending on a person's environment, needs, and wants, will help decide on what electric car would be perfect for them. 
 
-### Acceleration & Top Speed
+#### Acceleration & Top Speed
 The acceleration of a vehicle could be important to customers who live in an environment with many hills and inclines. Another reason why a customer may be interested in a higher acceleration car is if they want a more "exciting" drive. A car with high acceleration will give the vehicle a more sportier feel.
 
 The top speed of a vehicle could be important to a customer if they have a place where they could take advantage of the car's top speed. A place could be the Autobahn. The Autobahn is a freeway in Germany does not have any speed limits in some area. So a high top speed vehicle would benefit here.
 
-![Fig 1. Autobahn, map of freeway in Germany](Autobhan.png){width="196"}
+![Fig 1. Autobahn, map of freeway in Germany](Images/Autobhan.png){width="196"}
 
 Top Speed and Acceleration usually seem to have some type of correlation with each other in gas powered vehicles. Usually if a car has a high top speed, they usually have a lower 0-100kmh time.
 ```{r}
@@ -98,26 +101,29 @@ text(paste("Correlation:", round(cor(electric_cars$top_speed_km_h, electric_cars
 
 Based on the graph we can see that acceleration and top speed have a relatively strong negative correlation. Acceleration and Top Speed have a correlation of -0.79. From this graph we can say that the higher a top speed an electric car has, the lower 0-100kmh time.
 
-### Range, fast charge, and rapid charge.
+#### Range, fast charge, and rapid charge.
+```{r}
+embed_youtube("xnYPQjAHrQ8")
+```
 Out of all the variables of the electric car, I believe this is to be the most important variable of them all. Range tells how far the vehicle can travel before needing to be recharged. Having a shorter range on car can significantly decrease the amount of places the car can travel and how long it will take to get to each destination (due to having to recharge more often). At this period of time (2022), there are not as many charging stations as gas stations. Therefore, it is very important to know where all the nearest charging stations are when traveling, or else it will result in the car running out of electricity.
 
 Going off charging stations, a faster charger would benefit. The benefit of gas cars over electric cars are that for a gas powered car, it takes a few minutes to refill. This is compared to electric cars that may take up to an hour or more to be completely charged. However, some cars have  fast charging or even better rapid charging. This can get the electric cars to 80% charge in just 10-15 minutes.
 ```{r}
-embed_youtube("OpTOKKKGWV8")
+ggplot(electric_cars, aes(x=range_km, y=fast_charge_km_h, colour = rapid_charge)) + geom_point() + facet_wrap( ~ rapid_charge)
+
+sum(is.na(electric_cars$fast_charge_km_h))
 
 electric_cars %>%
   ggplot(aes(x = rapid_charge, colour = rapid_charge)) + geom_bar()
-
+```
+Based on our graphs we can see that there are no observations in this dataset that do not have a rapid charge. However, when I use to check if there are any NA's in the column for fast_charge_km_h, it says there are 5. This is because the vehicles with no rapid charging are labeled as NA in the fast_charge_km_h column. We can conclude that if the vehicle does not have rapid charging, then the vehicle cannot fast charge. These cars will most likely not sell as well as the vehicles with rapid charge.
+```{r}
 electric_cars %>%
   ggplot(aes(x = rapid_charge, y = range_km, colour = rapid_charge)) + geom_boxplot()
-
-ggplot(electric_cars, aes(x=range_km, y=fast_charge_km_h, colour = rapid_charge)) + geom_point() + facet_wrap( ~ rapid_charge)
-
-sum(is.na(electric_cars$fast_charge_km_h)) 
 ```
-Based on our graphs we can see that there are no observations in this dataset that do not have a rapid charge. However there are 5 cars in this dataset that do not have rapid charge. The graph tells us that if the car does not have rapid charge, then they also do not have fast_charge_kmh. These cars will most likely not sell as well as the vehicles with rapid charge. We can see that the cars with no rapid charge do not have a high range. The cars that do have rapid charge have a longer range and a faster charge rate. There also seems to be a positive correlation between range and fast charging. We can conclude that vehicles without rapid charging do not have a far range. We can also conclude that the faster the charger you have, the longer range your electric will go.
+We can see that the cars with no rapid charge do not have a high range. The cars that do have rapid charge have a longer range and a faster charge rate. There also seems to be a positive correlation between range and fast charging. We can conclude that vehicles without rapid charging do not have a far range. We can also conclude that the faster the charger you have, the farther range your electric vehicle will have.
 
-### Price
+#### Price
 Of course price is truly important to customers. An electric car can contain all these cool features, but if the price is completely overpriced then it would not be worth it. Price is a key factor for everything we purchase. We buy things that we feel is worth the price. No matter how good an object it is, we always end up buying that item if the price is reasonable. This is the reason why I decided to make price my response variable in this project.
 ```{r}
 ggplot(electric_cars, aes(price_euro)) +
@@ -126,34 +132,18 @@ ggplot(electric_cars, aes(price_euro)) +
 ```
 Based on the plot we can say that the price of the electric vehicles from this dataset, mainly ranges from 0 to 80,000. The vehicles that are above this range are most likely luxurious electric vehicles or high-end sport electric sport cars. The cars that are within this range are most likely efficiently friendly vehicles.
 
-## Prepearation for modeling
-The following models conducted were done in this order and procedure:
-1. Building the model
-2. Running the model
-3. Analyzing the results of the model
-
-### Splitting the data
+#### Brand
+A brand may not seem as important when looking for the perfect electric vehicle for you, but to others it may be something well considering. A few reasons why a customer may want to go for a specific brand are: the brand has a great reputation, the buyer may have bought vehicles from the brand before, or the brand gives it's buyer a type of prestige. A brand that is currently leading the electric vehicle market is Tesla. This is simply because Tesla has a premium-like quality, with the addition of multiple high-tech features such as "self-driving".
+![Fig 2. Brand: Tesla, Model: Model S](Images/tesla-model-s-1700x956.jpg){width="220"}
 ```{r}
-electric_cars <- electric_cars %>%
-  mutate(brand = factor(brand)) %>%
-  mutate(rapid_charge = factor(rapid_charge)) %>%
-  mutate(power_train = factor(power_train)) %>%
-  mutate(plug_type = factor(plug_type)) %>%
-  mutate(body_style = factor(body_style)) %>%
-  mutate(segment = factor(segment))
-head(electric_cars)
-
-set.seed(12)
-ec_split <- electric_cars %>%
-  initial_split(prop = 0.75, strata = "price_euro")
-
-ec_train <- training(ec_split)
-dim(ec_train) #75
-ec_test <- testing(ec_split)
-dim(ec_test) #28
+electric_cars %>%
+  ggplot(aes(reorder(brand, price_euro), price_euro)) +  geom_boxplot(varwidth = TRUE) + coord_flip() + labs(subtitle = "brands",x = NULL)
 ```
+Based on our plot we can see that the top 3 brands are Lightyear, Porsche, and Lucid. Lucid an Lightyear only make electric cars so they are not as well known. Porsche is a well-known car brand for making gasoline powered vehicles. There vehicles cost more than the average vehicle so it makes sense that Porsche is third on our plot. Tesla arrives at fifth which also makes sense since they are vehicles are closer to the more luxurious side. The bottom 3 are Sono, Smart, and SEAT. Sono and SEAT are not as well known in the automotive world. However, Smart makes small eco-friendly vehicles that are cheaper than the average vehicle therefore it makes sense that they are one of the lowest on the list.
+![Fig 3. Brand: Smart, Model:fortwo Electric Drive](Images/SMART-fortwo-Electric-Drive-5794_11.jpg){width="220"}
 
-### Finding correlations
+### Finding more correlations
+We have found some correlations already between some variables. However, let us graph a correlation plot with the numeric predictors to see if they are any more correlations.
 ```{r}
 cor_ec <- ec_train %>%
   select_if(is.numeric) %>%
@@ -163,14 +153,45 @@ cor_ec %>%
   stretch() %>%
   ggplot(aes(x,y,fill = r)) + geom_tile() + geom_text(aes(label = as.character(fashion(r))))
 ```
-
 Based on the correlation plot we can see that accel_sec has strong negative correlations with the variables: top_speed_km_h, range_km, price_euro. Top_speed_km_h has strong positive correlations with the variables: range_km, price_euro. The last correlation that is relative noting is the positive correlation between range_km and price_euro.
+
+## Prepearation for modeling
+The following models conducted were done in this order and procedure:
+1. Building the model
+2. Running the model
+3. Making predictions using the model
+4. Assessing it's accuracy
+
+### Preparing the data
+```{r}
+electric_cars <- electric_cars %>%
+  mutate(brand = factor(brand)) %>%
+  mutate(rapid_charge = factor(rapid_charge)) %>%
+  mutate(power_train = factor(power_train)) %>%
+  mutate(plug_type = factor(plug_type)) %>%
+  mutate(body_style = factor(body_style)) %>%
+  mutate(segment = factor(segment))
+head(electric_cars)
+```
+I mutated the variables by factoring the numerical predictors.
+
+### Splitting the data
+```{r}
+set.seed(12)
+ec_split <- electric_cars %>%
+  initial_split(prop = 0.75, strata = "price_euro")
+
+ec_train <- training(ec_split)
+dim(ec_train) #75
+ec_test <- testing(ec_split)
+dim(ec_test) #28
+```
+I decided to split the data with a .75 proportion and I made the strata price_euro because we are trying to predict the price of a vehicle based on the other variables. After splitting the data we get 75 observations for the training set and 28 left over for the testing set.
 
 ### Making the recipe and folds
 ```{r}
 ec_recipe <- recipe(price_euro ~ accel_sec + top_speed_km_h + range_km + efficiency_wh_km + fast_charge_km_h + rapid_charge + power_train + plug_type + body_style + segment + seats, data = ec_train) %>%
   step_dummy(all_nominal_predictors()) %>%
-  step_scale(all_predictors()) %>%
   step_normalize(all_predictors()) %>%
   step_novel(all_nominal_predictors()) %>%
   step_zv(all_nominal_predictors())
@@ -178,6 +199,7 @@ ec_recipe <- recipe(price_euro ~ accel_sec + top_speed_km_h + range_km + efficie
 
 ec_folds <- vfold_cv(ec_train, strata = price_euro, v = 10, repeats = 5)
 ```
+We made a recipe using the training set. The predictor variables we left out of the recipe are brand and model. I decided to leave them out because I wanted the prediction to be completely based on the features of the vehicle. I step_dummy()  all nominal predictors to encode them as categorical predictors. I also step_normalize() to center and scale all the predictors. I step_novel and step_zv all nominal predictors so it would assign any previously unseen factor level to a new value and to remove any variables that contain only a single value.
 
 ## The models
 
@@ -295,10 +317,15 @@ boost_tune_res <- tune_grid(
 write_rds(boost_tune_res, "Model-Results/boost_tuning.rds")
 
 autoplot(boost_tune_res)
+```
 
+```{r}
 collect_metrics(boost_tune_res) %>% 
   arrange(-mean) %>%
   head()
+```
+
+```{r}
 best_boost_final <- select_best(boost_tune_res)
 best_boost_final_model <- finalize_workflow(boost_wf, best_boost_final)
 best_boost_final_model_fit <- fit(best_boost_final_model, data = ec_train)
