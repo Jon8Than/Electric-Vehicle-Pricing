@@ -62,20 +62,20 @@ head(electric_cars) # names are cleaned up
 ### An overview of the dataset
 The dataset I am using is from the website Kaggle. This dataset contains some variables that are important to a customer looking to buy an electric vehicle.
 The variables in this dataset are as follows
-- Brand: The brand of the vehicle
-- Model: The model of the vehicle
-- AccelSec: The acceleration of the vehicle from 0-100 (km/h)
-- TopSpeed_KmH: The top speed of the vehicle (km/h)
-- Range_Km: The range of the vehicle on a full charge (km)
-- Efficiency_WhKm: The efficiency of the electric vehicle in watts per hour per kilometer (wh/km)
-- FastCharge_KmH: The charging rate of an electric car in kilometer per hour (km/h)
-- RapidCharge: If the car has the option of rapidcharge. Rapidcharge is a faster charge rate than the typical charging rate
-- PowerTrain: If the car has front, rear, or all-wheel drive
-- PlugType: The type of plug the electric vehicle uses
-- BodyStyle: The type of body style or car style the vehicle is
-- Segment: The market segment the car is in
-- Seats: The amount of seats the vehicle holds
-- PriceEuro: The price of the vehicle before any tax incentives
+- ```Brand```: The brand of the vehicle
+- ```Model```: The model of the vehicle
+- ```AccelSec```: The acceleration of the vehicle from 0-100 (km/h)
+- ```TopSpeed_KmH```: The top speed of the vehicle (km/h)
+- ```Range_Km```: The range of the vehicle on a full charge (km)
+- ```Efficiency_WhKm```: The efficiency of the electric vehicle in watts per hour per kilometer (wh/km)
+- ```FastCharge_KmH```: The charging rate of an electric car in kilometer per hour (km/h)
+- ```RapidCharge```: If the car has the option of rapidcharge. Rapidcharge is a faster charge rate than the typical charging rate
+- ```PowerTrain```: If the car has front, rear, or all-wheel drive
+- ```PlugType:``` The type of plug the electric vehicle uses
+- ```BodyStyle```: The type of body style or car style the vehicle is
+- ```Segment```: The market segment the car is in
+- ```Seats```: The amount of seats the vehicle holds
+- ```PriceEuro```: The price of the vehicle before any tax incentives
 
 ## Important factors to Customers
 As a person who's family currently owns an electric car, there are some key aspects that are important to a customer when finding the right electric car for them. Depending on a person's environment, needs, and wants, will help decide on what electric car would be perfect for them. 
@@ -105,9 +105,17 @@ Going off charging stations, a faster charger would benefit. The benefit of gas 
 ```{r}
 embed_youtube("OpTOKKKGWV8")
 
+electric_cars %>%
+  ggplot(aes(x = rapid_charge, colour = rapid_charge)) + geom_bar()
+
+electric_cars %>%
+  ggplot(aes(x = rapid_charge, y = range_km, colour = rapid_charge)) + geom_boxplot()
+
 ggplot(electric_cars, aes(x=range_km, y=fast_charge_km_h, colour = rapid_charge)) + geom_point() + facet_wrap( ~ rapid_charge)
+
+sum(is.na(electric_cars$fast_charge_km_h)) 
 ```
-Based on our graphs we can see that there are only 3 observations in this dataset that do not have a rapid charge. These cars will most likely not sell as well as the vehicles with rapid charge. We can see that the cars with no rapid charge do not have a high range. The cars that do have rapid charge have a longer range and a faster charge rate. There also seems to be a positive correlation between range and fast charging. We can conclude that vehicles without rapid charging do not have a far range. We can also conclude that the faster the charger you have, the longer range your electric will go.
+Based on our graphs we can see that there are no observations in this dataset that do not have a rapid charge. However there are 5 cars in this dataset that do not have rapid charge. The graph tells us that if the car does not have rapid charge, then they also do not have fast_charge_kmh. These cars will most likely not sell as well as the vehicles with rapid charge. We can see that the cars with no rapid charge do not have a high range. The cars that do have rapid charge have a longer range and a faster charge rate. There also seems to be a positive correlation between range and fast charging. We can conclude that vehicles without rapid charging do not have a far range. We can also conclude that the faster the charger you have, the longer range your electric will go.
 
 ### Price
 Of course price is truly important to customers. An electric car can contain all these cool features, but if the price is completely overpriced then it would not be worth it. Price is a key factor for everything we purchase. We buy things that we feel is worth the price. No matter how good an object it is, we always end up buying that item if the price is reasonable. This is the reason why I decided to make price my response variable in this project.
@@ -175,7 +183,7 @@ ec_folds <- vfold_cv(ec_train, strata = price_euro, v = 10, repeats = 5)
 
 ### Ridge Regression
 ```{r}
-#Ridge Regression
+#Ridge Regression write eval = FALSE
 
 ridge_spec <- linear_reg(penalty = tune(), mixture = 0) %>%
   set_mode("regression") %>%
@@ -199,7 +207,9 @@ tune_res
 
 autoplot(tune_res)
 
-collect_metrics(tune_res)
+collect_metrics(tune_res) %>%
+arrange(-mean) %>%
+  head()
 
 best_penalty <- select_best(tune_res, metric = "rsq")
 best_penalty
@@ -207,15 +217,13 @@ best_penalty
 ridge_final <- finalize_workflow(ridge_workflow, best_penalty)
 ridge_final_fit <- fit(ridge_final, data = ec_train)
 
-ec_train_res1 <- predict(ridge_final_fit, new_data = ec_test %>% dplyr::select(-price_euro))
-ec_train_res1 <- bind_cols(ec_train_res1, ec_test %>% dplyr::select(price_euro))
-ec_train_res1 %>%
-  head()
+Ridge_Prediction <- predict(ridge_final_fit, new_data = ec_test %>% dplyr::select(-price_euro))
+Ridge_Prediction <- bind_cols(Ridge_Prediction, ec_test %>% dplyr::select(price_euro))
 
-ec_train_res1 %>%
+Ridge_Graph <- Ridge_Prediction %>%
   ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha = 1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
 
-augment(ridge_final_fit, new_data = ec_test) %>%
+Ridge_Accuracy <- augment(ridge_final_fit, new_data = ec_test) %>%
   rsq(truth = price_euro, estimate = .pred)
 ```
 
@@ -244,22 +252,22 @@ tune_res_lasso
 
 autoplot(tune_res_lasso)
 
-collect_metrics(tune_res_lasso)
+collect_metrics(tune_res_lasso) %>%
+  arrange(-mean) %>%
+  head()
 
 best_penalty_lasso <- select_best(tune_res_lasso, metric = "rsq")
 
 lasso_final <- finalize_workflow(lasso_workflow, best_penalty_lasso)
 lasso_final_fit <- fit(lasso_final, data = ec_train)
 
-ec_train_res2 <- predict(lasso_final_fit, new_data = ec_test %>% dplyr::select(-price_euro))
-ec_train_res2 <- bind_cols(ec_train_res2, ec_test %>% dplyr::select(price_euro))
-ec_train_res2 %>%
-  head()
+Lasso_Prediction <- predict(lasso_final_fit, new_data = ec_test %>% dplyr::select(-price_euro))
+Lasso_Prediction <- bind_cols(ec_train_res2, ec_test %>% dplyr::select(price_euro))
 
-ec_train_res2 %>%
+Lasso_Graph <- Lasso_Prediction %>%
   ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
 
-augment(lasso_final_fit, new_data = ec_test) %>%
+Lasso_Accuracy <- augment(lasso_final_fit, new_data = ec_test) %>%
   rsq(truth = price_euro, estimate = .pred)
 ```
 
@@ -283,6 +291,9 @@ boost_tune_res <- tune_grid(
   resamples = ec_folds,
   grid = boost_grid,
 )
+
+write_rds(boost_tune_res, "Model-Results/boost_tuning.rds")
+
 autoplot(boost_tune_res)
 
 collect_metrics(boost_tune_res) %>% 
@@ -292,15 +303,13 @@ best_boost_final <- select_best(boost_tune_res)
 best_boost_final_model <- finalize_workflow(boost_wf, best_boost_final)
 best_boost_final_model_fit <- fit(best_boost_final_model, data = ec_train)
 
-ec_train_res4 <- predict(best_boost_final_model_fit, new_data = ec_test %>% dplyr::select(-price_euro))
-ec_train_res4 <- bind_cols(ec_train_res4, ec_test %>% dplyr::select(price_euro))
-ec_train_res4 %>%
-  head()
+Boost_Prediction <- predict(best_boost_final_model_fit, new_data = ec_test %>% dplyr::select(-price_euro))
+Boost_Prediction <- bind_cols(Boost_Prediction, ec_test %>% dplyr::select(price_euro))
 
-ec_train_res4 %>%
+Boost_Graph <- Boost_Prediction %>%
   ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
 
-augment(best_boost_final_model_fit, new_data = ec_test) %>%
+Boost_Accuracy <- augment(best_boost_final_model_fit, new_data = ec_test) %>%
   rsq(truth = price_euro, estimate = .pred)
 ```
 
@@ -325,12 +334,14 @@ tune_res_tree <- tune_grid(
   resamples = ec_folds,
   grid = param_grid,
 )
+
+write_rds(tune_res_tree, "Model-Results/tree_tuning.rds")
+
 autoplot(tune_res_tree)
 
-tree_roc_auc <- collect_metrics(tune_res_tree) %>%
+collect_metrics(tune_res_tree) %>%
   arrange(-mean) %>%
   head()
-tree_roc_auc
 
 best_complexity <- select_best(tune_res_tree)
 class_tree_final <- finalize_workflow(class_tree_wf, best_complexity)
@@ -340,14 +351,17 @@ class_tree_final_fit %>%
   extract_fit_engine() %>%
   rpart.plot()
 
-ec_train_res3 <- predict(class_tree_final_fit, new_data = ec_test %>% dplyr::select(-price_euro))
-ec_train_res3 <- bind_cols(ec_train_res3, ec_test %>% dplyr::select(price_euro))
-ec_train_res3 %>%
-  head()
+Tree_Prediction <- predict(class_tree_final_fit, new_data = ec_test %>% dplyr::select(-price_euro))
+Tree_Prediction <- bind_cols(Tree_Prediction, ec_test %>% dplyr::select(price_euro))
 
-ec_train_res3 %>%
+Tree_Graph <- Tree_Prediction %>%
   ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
 
-augment(class_tree_final_fit, new_data = ec_test) %>%
+Tree_Accuracy <- augment(class_tree_final_fit, new_data = ec_test) %>%
   rsq(truth = price_euro, estimate = .pred)
 ```
+
+## Conclusions
+
+### Comparison of the four different models:
+
