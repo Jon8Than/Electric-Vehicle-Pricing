@@ -6,7 +6,7 @@
   The variables in this dataset are as follows:
 - ```Brand```: The brand of the vehicle (Categorical)
 - ```Model```: The model of the vehicle (Categorical)
-- ```AccelSec```: The acceleration of the vehicle from 0-100 (km/h) (Categorical)
+- ```AccelSec```: The acceleration of the vehicle from 0-100 (km/h) (Numerical)
 - ```TopSpeed_KmH```: The top speed of the vehicle (km/h) (Numerical)
 - ```Range_Km```: The range of the vehicle on a full charge (km) (Numerical)
 - ```Efficiency_WhKm```: The efficiency of the electric vehicle in watts per hour per kilometer (wh/km) (Numerical)
