@@ -228,11 +228,15 @@ tune_res <- tune_grid(
 tune_res
 
 autoplot(tune_res)
+```
 
+```{r}
 collect_metrics(tune_res) %>%
 arrange(-mean) %>%
   head()
+```
 
+```{r}
 best_penalty <- select_best(tune_res, metric = "rsq")
 best_penalty
 
@@ -252,8 +256,6 @@ Ridge_Accuracy <- augment(ridge_final_fit, new_data = ec_test) %>%
 
 ### Lasso Regression
 ```{r}
-#Lasso Regression
-
 lasso_spec <-
   linear_reg(penalty = tune(), mixture = 1) %>%
   set_mode("regression") %>%
@@ -273,11 +275,15 @@ tune_res_lasso <- tune_grid(
 tune_res_lasso
 
 autoplot(tune_res_lasso)
+```
 
+```{r}
 collect_metrics(tune_res_lasso) %>%
   arrange(-mean) %>%
   head()
+```
 
+```{r}
 best_penalty_lasso <- select_best(tune_res_lasso, metric = "rsq")
 
 lasso_final <- finalize_workflow(lasso_workflow, best_penalty_lasso)
@@ -361,11 +367,15 @@ tune_res_tree <- tune_grid(
 )
 
 autoplot(tune_res_tree)
+```
 
+```{r}
 collect_metrics(tune_res_tree) %>%
   arrange(-mean) %>%
   head()
+```
 
+```{r}
 best_complexity <- select_best(tune_res_tree)
 class_tree_final <- finalize_workflow(class_tree_wf, best_complexity)
 class_tree_final_fit <- fit(class_tree_final, data = ec_train)
