@@ -134,12 +134,14 @@ Based on the plot we can say that the price of the electric vehicles from this d
 
 #### Brand
 A brand may not seem as important when looking for the perfect electric vehicle for you, but to others it may be something well considering. A few reasons why a customer may want to go for a specific brand are: the brand has a great reputation, the buyer may have bought vehicles from the brand before, or the brand gives it's buyer a type of prestige. A brand that is currently leading the electric vehicle market is Tesla. This is simply because Tesla has a premium-like quality, with the addition of multiple high-tech features such as "self-driving".
+
 ![Fig 2. Brand: Tesla, Model: Model S](Images/tesla-model-s-1700x956.jpg){width="220"}
 ```{r}
 electric_cars %>%
   ggplot(aes(reorder(brand, price_euro), price_euro)) +  geom_boxplot(varwidth = TRUE) + coord_flip() + labs(subtitle = "brands",x = NULL)
 ```
 Based on our plot we can see that the top 3 brands are Lightyear, Porsche, and Lucid. Lucid an Lightyear only make electric cars so they are not as well known. Porsche is a well-known car brand for making gasoline powered vehicles. There vehicles cost more than the average vehicle so it makes sense that Porsche is third on our plot. Tesla arrives at fifth which also makes sense since they are vehicles are closer to the more luxurious side. The bottom 3 are Sono, Smart, and SEAT. Sono and SEAT are not as well known in the automotive world. However, Smart makes small eco-friendly vehicles that are cheaper than the average vehicle therefore it makes sense that they are one of the lowest on the list.
+
 ![Fig 3. Brand: Smart, Model:fortwo Electric Drive](Images/SMART-fortwo-Electric-Drive-5794_11.jpg){width="220"}
 
 ### Finding more correlations
@@ -205,8 +207,6 @@ We made a recipe using the training set. The predictor variables we left out of 
 
 ### Ridge Regression
 ```{r}
-#Ridge Regression write eval = FALSE
-
 ridge_spec <- linear_reg(penalty = tune(), mixture = 0) %>%
   set_mode("regression") %>%
   set_engine("glmnet")
@@ -229,12 +229,14 @@ tune_res
 
 autoplot(tune_res)
 ```
+In this step we are adding the recipe to the ridge model. We are also making the workflow and grid for the tune_grid. We use the folds we did earlier for the tune_grid also.
 
 ```{r}
 collect_metrics(tune_res) %>%
 arrange(-mean) %>%
   head()
 ```
+We collect the metrics of our regression tune and look at the mean
 
 ```{r}
 best_penalty <- select_best(tune_res, metric = "rsq")
