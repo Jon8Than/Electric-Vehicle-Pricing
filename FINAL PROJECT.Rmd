@@ -49,7 +49,7 @@ This model can be helpful by helping customers choose the features they want in 
 
 ### Reading in the dataset
 ```{r}
-electric_cars <- read.csv("ElectricCarData_Clean.csv")
+electric_cars <- read.csv("Data/ElectricCarData_Clean.csv")
 head(electric_cars)
 is.numeric(electric_cars$FastCharge_KmH)
 electric_cars$FastCharge_KmH <- as.numeric(electric_cars$FastCharge_KmH) 
@@ -145,7 +145,7 @@ Based on our plot we can see that the top 3 brands are Lightyear, Porsche, and L
 ### Finding more correlations
 We have found some correlations already between some variables. However, let us graph a correlation plot with the numeric predictors to see if they are any more correlations.
 ```{r}
-cor_ec <- ec_train %>%
+cor_ec <- electric_cars %>%
   select_if(is.numeric) %>%
   correlate()
 rplot(cor_ec)
@@ -284,7 +284,7 @@ lasso_final <- finalize_workflow(lasso_workflow, best_penalty_lasso)
 lasso_final_fit <- fit(lasso_final, data = ec_train)
 
 Lasso_Prediction <- predict(lasso_final_fit, new_data = ec_test %>% dplyr::select(-price_euro))
-Lasso_Prediction <- bind_cols(ec_train_res2, ec_test %>% dplyr::select(price_euro))
+Lasso_Prediction <- bind_cols(Lasso_Prediction, ec_test %>% dplyr::select(price_euro))
 
 Lasso_Graph <- Lasso_Prediction %>%
   ggplot(aes(x=.pred, y=price_euro)) + geom_point(alpha=1) + geom_abline(lty = 2) + theme_bw() + coord_obs_pred()
@@ -313,8 +313,6 @@ boost_tune_res <- tune_grid(
   resamples = ec_folds,
   grid = boost_grid,
 )
-
-write_rds(boost_tune_res, "Model-Results/boost_tuning.rds")
 
 autoplot(boost_tune_res)
 ```
@@ -362,8 +360,6 @@ tune_res_tree <- tune_grid(
   grid = param_grid,
 )
 
-write_rds(tune_res_tree, "Model-Results/tree_tuning.rds")
-
 autoplot(tune_res_tree)
 
 collect_metrics(tune_res_tree) %>%
@@ -390,5 +386,8 @@ Tree_Accuracy <- augment(class_tree_final_fit, new_data = ec_test) %>%
 
 ## Conclusions
 
-### Comparison of the four different models:
+### Comparison of the four different models: 
+(I will recall the predictions, accuracy, and graphs for comparison. Whichever has the best accuracy is the one I will chose is best for my model)
+
+Compared with rmse models and then pick the best rmse or I can just compare the accuracies?
 
