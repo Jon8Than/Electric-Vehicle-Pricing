@@ -39,6 +39,8 @@ theme_set(
   theme_bw() +
     theme(legend.position = "top")
   )
+library(MLmetrics)
+library(vip)
 ```
 
 ## Introduction
@@ -47,7 +49,7 @@ The purpose of this project is to generate a model that will be able to predict 
 
 ### Electric Cars
 
-An electric car is a car that does not run on a petrol engine but rather runs on an electric battery. Some benefits to owning an electric car are that the car is quieter, no exhaust emissions, and low maintenance costs. Electric cars are becoming increasingly popular, due to the rise of gas prices, and the advancement in technology. The problem with electric cars before was that they were too expensive, they couldn't travel far, and there weren't many places to charge your vehicle. Most electric cars do not suffer from these problems anymore. Therefore, there is more reason to purchase an electric car.
+An electric car is a car that does not run on a gasoline engine but rather runs on an electric battery. Some benefits to owning an electric car are that the car is quieter, no exhaust emissions, and low maintenance costs. Electric cars are becoming increasingly popular, due to the rise of gas prices, and the advancement in technology. The problem with electric cars before was that they were too expensive, they couldn't travel far, and there weren't many places to charge your vehicle. Most electric cars do not suffer from these problems anymore. Therefore, there is more reason to purchase an electric car.
 ```{r}
 embed_youtube("FDTf2d47P4A")
 ```
@@ -67,30 +69,45 @@ electric_cars <- electric_cars %>%
 head(electric_cars)
 is.numeric(electric_cars$fast_charge_km_h)
 ```
-I have cleaned the names and also made the variable "FastCharge_KmH" numerical instead of categorical because the values in the dataset are the charging rate of the charger from the vehicle. Therefore I believe those values should be numerical, to help improve the model's calculations.
+I have cleaned the names and also made the variable "FastCharge_KmH" numerical instead of categorical because the values represent the charging rate of the charger from the vehicle. Therefore I believe those values should be numerical, to help improve the model's calculations.
 
 ### An overview of the dataset
 
 The dataset I am using is from the website Kaggle. This dataset contains some variables that are important to a customer looking to buy an electric vehicle. (Can also be found in codebook)
-The variables in this dataset are as follows
+
+The variables in this dataset are as follows:
+
 - ```Brand```: The brand of the vehicle
+
 - ```Model```: The model of the vehicle
+
 - ```AccelSec```: The acceleration of the vehicle from 0-100 (km/h)
+
 - ```TopSpeed_KmH```: The top speed of the vehicle (km/h)
+
 - ```Range_Km```: The range of the vehicle on a full charge (km)
+
 - ```Efficiency_WhKm```: The efficiency of the electric vehicle in watts per hour per kilometer (wh/km)
+
 - ```FastCharge_KmH```: The charging rate of an electric car in kilometer per hour (km/h)
+
 - ```RapidCharge```: If the car has the option of rapidcharge. Rapidcharge is a faster charge rate than the typical charging rate
+
 - ```PowerTrain```: If the car has front, rear, or all-wheel drive
+
 - ```PlugType:``` The type of plug the electric vehicle uses
+
 - ```BodyStyle```: The type of body style or car style the vehicle is
+
 - ```Segment```: The market segment the car is in
+
 - ```Seats```: The amount of seats the vehicle holds
+
 - ```PriceEuro```: The price of the vehicle before any tax incentives
 
 ## Explanatory Data Analysis
 
-Factors that could result in a person's purchase
+```Factors that could result in a person's purchase```
 
 As a person who's family currently owns an electric car, there are some key aspects that are important to a customer when finding the right electric car for them. Depending on a person's environment, needs, and wants, will help decide on what electric car would be perfect for them. 
 
@@ -100,7 +117,7 @@ The acceleration of a vehicle could be important to customers who live in an env
 
 The top speed of a vehicle could be important to a customer if they have a place where they could take advantage of the car's top speed. A place could be the Autobahn. The Autobahn is a freeway in Germany does not have any speed limits in some area. So a high top speed vehicle would benefit here.
 
-![Fig 1. Autobahn, map of freeway in Germany](Images/Autobhan.png){width="196"}
+![Fig 1. Autobahn, map of freeway in Germany](Images/Autobhan.png){width="200"}
 
 Top Speed and Acceleration usually seem to have some type of correlation with each other in gas powered vehicles. Usually if a car has a high top speed, they usually have a lower 0-100kmh time.
 ```{r}
@@ -129,7 +146,7 @@ electric_cars %>%
   ggplot(aes(x = rapid_charge, colour = rapid_charge)) + geom_bar()
 ```
 
-Based on our graphs we can see that there are no observations in this dataset that do not have a rapid charge. However, when I use to check if there are any NA's in the column for fast_charge_km_h, it says there are 5. This is because the vehicles with no rapid charging are labeled as NA in the fast_charge_km_h column. We can conclude that if the vehicle does not have rapid charging, then the vehicle cannot fast charge. These cars will most likely not sell as well as the vehicles with rapid charge.
+Based on our graphs we can see that there are no observations in this dataset that do not have a rapid charge. However, when I check if there are any NA's in the column for `fast_charge_km_h`, it says there are 5. This is because the vehicles with no rapid charging are labeled as NA in the `fast_charge_km_h` column. We can conclude that if the vehicle does not have rapid charging, then the vehicle cannot fast charge. These cars will most likely not sell as well as the vehicles with rapid charge.
 ```{r}
 electric_cars %>%
   ggplot(aes(x = rapid_charge, y = range_km, colour = rapid_charge)) + geom_boxplot()
@@ -139,7 +156,7 @@ We can see that the cars with no rapid charge do not have a high range. The cars
 
 ### Price
 
-Of course price is truly important to customers. An electric car can contain all these cool features, but if the price is completely overpriced then it would not be worth it. Price is a key factor for everything we purchase. We buy things that we feel is worth the price. No matter how good an object it is, we always end up buying that item if the price is reasonable. This is the reason why I decided to make price my response variable in this project.
+Of course price is truly important to customers. An electric car can contain all these cool features, but if the price is completely overpriced then it would not be worth it. Price is a key factor for everything we purchase. We buy things that we feel is worth the price. No matter how good an object it is, we always end up buying that item if the price is reasonable. This is the reason why I decided to make the price my response variable in this project.
 ```{r}
 ggplot(electric_cars, aes(price_euro)) +
    geom_histogram(bins = 70, color = "red") +
@@ -152,15 +169,15 @@ Based on the plot we can say that the price of the electric vehicles from this d
 
 A brand may not seem as important when looking for the perfect electric vehicle for you, but to others it may be something well considering. A few reasons why a customer may want to go for a specific brand are: the brand has a great reputation, the buyer may have bought vehicles from the brand before, or the brand gives it's buyer a type of prestige. A brand that is currently leading the electric vehicle market is Tesla. This is simply because Tesla has a premium-like quality, with the addition of multiple high-tech features such as "self-driving".
 
-![Fig 2. Brand: Tesla, Model: Model S](Images/tesla-model-s-1700x956.jpg){width="220"}
+![Fig 2. Brand: Tesla, Model: Model S](Images/tesla-model-s-1700x956.jpg){width="500"}
 ```{r}
 electric_cars %>%
   ggplot(aes(reorder(brand, price_euro), price_euro)) +  geom_boxplot(varwidth = TRUE) + coord_flip() + labs(subtitle = "brands",x = NULL)
 ```
 
-Based on our plot we can see that the top 3 brands are Lightyear, Porsche, and Lucid. Lucid an Lightyear only make electric cars so they are not as well known. Porsche is a well-known car brand for making gasoline powered vehicles. There vehicles cost more than the average vehicle so it makes sense that Porsche is third on our plot. Tesla arrives at fifth which also makes sense since they are vehicles are closer to the more luxurious side. The bottom 3 are Sono, Smart, and SEAT. Sono and SEAT are not as well known in the automotive world. However, Smart makes small eco-friendly vehicles that are cheaper than the average vehicle therefore it makes sense that they are one of the lowest on the list.
+Based on our plot we can see that the top 3 brands are Lightyear, Porsche, and Lucid. Lucid and Lightyear only make electric cars so they are not as well known. Porsche is a well-known car brand for making gasoline powered vehicles. There vehicles cost more than the average vehicle so it makes sense that Porsche is third on our plot. Tesla arrives at fifth which also makes sense since their vehicles are closer to the more luxurious side. The bottom 3 are Sono, Smart, and SEAT. Sono and SEAT are not as well known in the automotive world. However, Smart makes small eco-friendly vehicles that are cheaper than the average vehicle therefore it makes sense that they are one of the lowest on the list.
 
-![Fig 3. Brand: Smart, Model:fortwo Electric Drive](Images/SMART-fortwo-Electric-Drive-5794_11.jpg){width="220"}
+![Fig 3. Brand: Smart, Model:fortwo Electric Drive](Images/SMART-fortwo-Electric-Drive-5794_11.jpg){width="500"}
 
 ### Finding more correlations
 
@@ -175,15 +192,14 @@ cor_ec %>%
   ggplot(aes(x,y,fill = r)) + geom_tile() + geom_text(aes(label = as.character(fashion(r))))
 ```
 
-Based on the correlation plot we can see that accel_sec has strong negative correlations with the variables: top_speed_km_h, range_km, price_euro. Top_speed_km_h has strong positive correlations with the variables: range_km, price_euro. The last correlation that is relative noting is the positive correlation between range_km and price_euro.
+Based on the correlation plot we can see that accel_sec has strong negative correlations with the variables: `top_speed_km_h`, `range_km`, `fast_charge_km_h`. The other relative relation noting is top_speed_km_h has strong positive correlations with the variables: `range_km`, `price_euro`,`fast_charge_km_h`.
 
-## Prepearation for modeling
+## Preparation for modeling
 
 The following models conducted were done in this order and procedure:
 1. Building the model
 2. Running the model
 3. Making predictions using the model
-4. Assessing it's accuracy on the testing set
 
 ### Preparing the data
 
@@ -227,11 +243,13 @@ ec_recipe <- recipe(price_euro ~ accel_sec + top_speed_km_h + range_km + efficie
 ec_folds <- vfold_cv(ec_train, strata = price_euro, v = 10, repeats = 5)
 ```
 
-We made a recipe using the training set. The predictor variables we left out of the recipe are brand and model. I decided to leave them out because I wanted the prediction to be completely based on the features of the vehicle. I step_dummy()  all nominal predictors to encode them as categorical predictors. I also step_normalize() to center and scale all the predictors. I step_novel and step_zv all nominal predictors so it would assign any previously unseen factor level to a new value and to remove any variables that contain only a single value.
+We made a recipe using the training set. The predictor variables we left out of the recipe are brand and model. I decided to leave them out because I wanted the prediction to be completely based on the features of the vehicle. I `step_dummy()`  all nominal predictors to encode them as categorical predictors. I also `step_normalize()` to center and scale all the predictors. I `step_novel` and `step_zv` all nominal predictors so it would assign any previously unseen factor level to a new value and to remove any variables that contain only a single value.
 
 ## The models
 
 ### Ridge Regression
+
+The first model I decided to create was a Ridge Regression Model. Ridge regression is one of the alternative approaches to modeling. Ridge is one of the main types of the Regularization approach. The goal of the Regularization approach is to shrink the coefficient estimates toward zero, similar to least squares. Ridge minimizes the sum of squared residuals and $\lambda * slope^2$.
 
 ```{r, message=FALSE, warning=FALSE}
 ridge_spec <- linear_reg(penalty = tune(), mixture = 0) %>%
@@ -257,11 +275,11 @@ tune_res
 autoplot(tune_res)
 ```
 
-In this step we are adding the recipe to the ridge model. We are also making the workflow and grid for the tune_grid. We use the folds we did earlier for the tune_grid also.
+In this step we are adding the recipe to the ridge model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also.
 
 ```{r}
-collect_metrics(tune_res) %>%
-arrange(-mean) %>%
+Ridge_RMSE <- collect_metrics(tune_res) %>%
+  dplyr::select(.metric, mean, std_err) %>%
   head()
 ```
 
@@ -289,6 +307,8 @@ Here we prepare the predictions, graphs, and plots, for comparison at the end.
 
 ### Lasso Regression
 
+The second model I decided to create was a Lasso Regression Model. Lasso regression is also one of the alternative approaches to modeling. Like Ridge, Lasso is one of the main types of the Regularization approach.The difference is Lasso minimizes the sum of squared residuals and $\lambda * |slope|$.
+
 ```{r, message=FALSE, warning=FALSE}
 lasso_spec <-
   linear_reg(penalty = tune(), mixture = 1) %>%
@@ -311,15 +331,15 @@ tune_res_lasso
 autoplot(tune_res_lasso)
 ```
 
-In this step we are adding the recipe to the lasso model. We are also making the workflow and grid for the tune_grid. We use the folds we did earlier for the tune_grid also. The plots does not seem to be as smooth as the ridge model.
+In this step we are adding the recipe to the lasso model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The plots does not seem to be as smooth as the ridge model.
 
 ```{r}
-collect_metrics(tune_res_lasso) %>%
-  arrange(-mean) %>%
+Lasso_RMSE <- collect_metrics(tune_res_lasso) %>%
+  dplyr::select(.metric, mean, std_err) %>%
   head()
 ```
 
-We collect the metrics of our regression tune and look at the mean and standard error. They seem to be very similar and or not the same as the Ridge regression.
+We collect the metrics of our regression tune and look at the mean and standard error.
 
 ```{r}
 best_penalty_lasso <- select_best(tune_res_lasso, metric = "rsq")
@@ -340,6 +360,8 @@ Lasso_Accuracy <- augment(lasso_final_fit, new_data = ec_test) %>%
 Here we prepare the predictions, graphs, and plots, for comparison at the end.
 
 ### Boosted Model
+
+The third model I created was a boosted tree model. A boosted model builds a weak decision tree that has low predictive accuracy. Then the model goes through the process of sequentially improving previous decision trees. Doing this, slowly reduces the bias at each step without drastically increasing the variance.
 ```{r, message=FALSE, warning=FALSE}
 boost_spec <- boost_tree() %>%
   set_engine("xgboost") %>%
@@ -363,16 +385,16 @@ boost_tune_res <- tune_grid(
 autoplot(boost_tune_res)
 ```
 
-In this step we are adding the recipe to the Boost model. We are also making the workflow and grid for the tune_grid. We use the folds we did earlier for the tune_grid also. The tree plots here seem to go straight up and then flatten out, never changing it's slope again.
+In this step we are adding the recipe to the Boost model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The tree plots here seem to go straight up and then flatten out, never changing it's slope again.
 
 
 ```{r}
-collect_metrics(boost_tune_res) %>% 
-  arrange(-mean) %>%
+Boost_RMSE <- collect_metrics(boost_tune_res) %>% 
+  dplyr::select(.metric, mean, std_err) %>%
   head()
 ```
 
-We collect the metrics of our regression tune and look at the mean and standard error. The boost model seems to have a much lower mean compared to Lasso and Ridge. The boost also has a higher standard error compared to the two previous models.
+We collect the metrics of our regression tune and look at the mean and standard error.
 
 ```{r}
 best_boost_final <- select_best(boost_tune_res)
@@ -392,6 +414,8 @@ Boost_Accuracy <- augment(best_boost_final_model_fit, new_data = ec_test) %>%
 Here we prepare the predictions, graphs, and plots, for comparison at the end.
 
 ### Decision - Tree model
+
+The fourth and final model I decided to make is a decision tree model. A decision tree model puts the data into classified chunks. Then based on the data from those chunks, the model does it's best to predict the outcome.
 ```{r, message=FALSE, warning=FALSE}
 tree_spec <-decision_tree() %>%
   set_engine("rpart")
@@ -416,15 +440,15 @@ tune_res_tree <- tune_grid(
 autoplot(tune_res_tree)
 ```
 
-In this step we are adding the recipe to the Tree model. We are also making the workflow and grid for the tune_grid. We use the folds we did earlier for the tune_grid also. The cost_complexity parameter seems to have more similarities to the lasso plots. The reasoning is the plots are not smooth, and seem to have sudden changes of slope.
+In this step we are adding the recipe to the Tree model. We are also making the workflow and grid for the `tune_grid`. We use the folds we did earlier for the `tune_grid` also. The `cost_complexity` parameter seems to have more similarities to the lasso plots. The reasoning is the plots are not smooth, and seem to have sudden changes of slope.
 
 ```{r}
-collect_metrics(tune_res_tree) %>%
-  arrange(-mean) %>%
+Tree_RMSE <- collect_metrics(tune_res_tree) %>%
+  dplyr::select(.metric, mean, std_err) %>%
   head()
 ```
 
-We collect the metrics of our regression tune and look at the mean and standard error. The tree model has the exact same mean and standard error as the Lasso and Ridge models.
+We collect the metrics of our regression tune and look at the mean and standard error.
 
 ```{r}
 best_complexity <- select_best(tune_res_tree)
@@ -460,35 +484,9 @@ Here we prepare the predictions, graphs, and plots, for comparison at the end.
 
 Comparison of the four different models: 
 We will compare the four different models in this by these factors:
-- Predictions
-- Graphs
-- Accuracy
-Whichever model has the highest accuracy, would be the best model to predict the price of an electric car based on their features.
-
-### Predictions
-
-We are going to look over the first five predictions compared to the actual price of the vehicle. Note: The actual prices are the same for each model.
-Ridge
-```{r}
-head(Ridge_Prediction)
-```
-
-Lasso
-```{r}
-head(Lasso_Prediction)
-```
-
-Boost
-```{r}
-head(Boost_Prediction)
-```
-
-Tree
-```{r}
-head(Tree_Prediction)
-```
-
-Looking at the predictions of each model, I would personally say that the boost model has the best predictions. I think it's predictions overall are closer to the actual value of the vehicle.
+- Prediction Graphs
+- RMSE & RSQ (R-Squared) from Training Set
+- RSQ from Testing Set
 
 ### Graphs
 
@@ -499,22 +497,67 @@ figure <- ggarrange(Ridge_Graph, Lasso_Graph, Boost_Graph,Tree_Graph,
 figure
 ```
 
-In the plots the dotted line represents where the points would be if the actual price of the vehicle was the same number as the prediction. Looking at the plots I can say I would say that the Lasso and Ridge have the points closest to the dotted line meaning they most likely have the highest accuracy between the four models.
+In the plots the dotted line represents where the points would be if the actual price of the vehicle was the same number as the prediction. Looking at the plots I would say that the Boost has the points closest to the dotted line meaning they most likely have the highest accuracy between the four models.
 
-### Accuracy
+### RMSE & RSQ (Training Set)
+
+Ridge
+```{r}
+head(Ridge_RMSE)
+```
+
+Looking at the mean and standard we get that 
+Ridge has the following values:
+```RMSE``` : mean = 18,922 & standard error = 2013
+```RSQ``` : mean = 0.7994 & standard error = 0.03249
+
+Lasso
+```{r}
+head(Lasso_RMSE)
+```
+Looking at the mean and standard we get that 
+Lasso has the following values:
+```RMSE``` : mean = 20,886 & standard error = 2544
+```RSQ``` : mean = 0.715 & standard error = 0.04805
+
+Boost
+```{r}
+head(Boost_RMSE)
+```
+Looking at the mean and standard we get that 
+Boost has the following values:
+```RMSE``` : mean = 23,443 & standard error = 2127
+```RSQ``` : mean = 0.8232 & standard error = 0.04482
+
+Tree
+```{r}
+head(Tree_RMSE)
+```
+Looking at the mean and standard we get that 
+Tree has the following values:
+```RMSE``` : mean = 25,233 & standard error = 2102
+```RSQ``` : mean = 0.584 & standard error = 0.0399
+
+Looking at all the model's rmse and rsq, Boost would be the best model to test on the Testing Set. Boost has the lowest RMSE and highest RSQ.
+
+### R-Squared for (Testing Set)
 
 ```{r}
-accuracy_comparisons <- bind_rows(Ridge_Accuracy, Lasso_Accuracy, Boost_Accuracy, Tree_Accuracy) %>% 
+rsq_comparisons <- bind_rows(Ridge_Accuracy, Lasso_Accuracy, Boost_Accuracy, Tree_Accuracy) %>% 
   tibble() %>% mutate(model = c("Ridge", "Lasso", "Boost", "Tree")) %>% 
   dplyr::select(model, .estimate) %>%
   arrange(.estimate)
 
-accuracy_comparisons
+rsq_comparisons
 ```
 
-Looking at the accuracy of the four different models we see that the Lasso model had the highest accuracy and the tree model had the lowest accuracy. Ridge was after Lasso then Boost, then finally Tree.
+Looking at the R-Squared of the four different models we see that the Lasso model had the highest R-Squared and the tree model had the lowest R-Squared. Ridge was after Lasso then Boost, then finally Tree.
 
 ### Summary
 
-Going through the dataset we found a couple of correlations between the variables. After we decided to produce four different models. These models were: Ridge, Lasso, Boost, and Tree. Analyzing the results of the models we have that Lasso had the highest predicted accuracy and Tree with the lowest predicted accuracy. I believe the reason why the tree model did poorly was because I think the tree model is more successful with categorical data. The data we used mainly consisted of numerical data. Based on this research, by using a Lasso model we can accurately predict the price of an electric vehicle about 86% of the time.
+Going through the dataset we found a couple of correlations between the variables. After we decided to produce four different models. These models were: Ridge, Lasso, Boost, and Tree.
+
+Analyzing the results of the rmse and rsq from the training set, I would of thought that the boost would be the best model to predict `price_euro`. However, when using each model for the testing data set, we got that boost had a lower rsq value. Lasso had the best model prediction. I think the reason why boost did not do as well is because the model is not as flexible and it over fitted. I believe the reason why the tree model did poorly was because I think the tree model is more successful with categorical data. The data we used mainly consisted of numerical data. Lasso and Ridge came out on top, because Lasso and Ridge are more flexible than the other two models I fitted.
+
+This research shows Lasso would be the best model. This model is the best at predicting the price of an electric vehicle, based on the features the vehicle has.
 
